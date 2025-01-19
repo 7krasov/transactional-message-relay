@@ -1,13 +1,13 @@
 mod db_repository;
-mod logger;
 
 use db_repository::DbRepository;
 use db_repository::PoolFactory;
+use formatted_logger::{log_hashmap, HashMapLogData, JsonLogger};
 use log::{debug, error, info, warn};
-use logger::init_logger;
 use reqwest::Client;
 use sqlx::mysql::MySqlPool;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -20,7 +20,8 @@ async fn process_records(pool: MySqlPool, client: Client) {
     let worker_uuid = Uuid::new_v4().to_string();
     let db_repository = DbRepository::new(pool).await;
 
-    let log_data = log_hashmap! {
+    // let log_data = log_hashmap! {
+    let log_data = formatted_logger::log_hashmap! {
         "pkg_version" => env!("CARGO_PKG_VERSION"),
         "consumer_count" => NUM_CONSUMERS.to_owned(),
         "worker_uuid" => worker_uuid.to_owned()
@@ -126,6 +127,12 @@ async fn process_records(pool: MySqlPool, client: Client) {
 #[tokio::main]
 async fn main() {
     init_logger();
+    let log_data = log_hashmap! {
+        "pkg_version" => env!("CARGO_PKG_VERSION"),
+        "some_key" => "some_value"
+    };
+
+    debug!(target: "process_records", ctxt = log_data; "A log record.");
 
     let mut log_data = log_hashmap! {
         "pkg_version" => env!("CARGO_PKG_VERSION"),
@@ -163,4 +170,12 @@ async fn main() {
     for handle in handles {
         handle.await.unwrap();
     }
+}
+
+pub fn init_logger() {
+    let logger = JsonLogger::new(None, Some(vec!["sqlx::query".to_string()]));
+    log::set_boxed_logger(Box::new(logger)).unwrap();
+    //log::LOG_LEVEL_NAMES
+    let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "trace".to_string());
+    log::set_max_level(log::LevelFilter::from_str(log_level.as_str()).unwrap());
 }
