@@ -142,7 +142,7 @@ async fn main() {
     log_data.insert("pkg_version", env!("CARGO_PKG_VERSION"));
 
     info!(target: "main", ctxt = log_data; "Starting the application...");
-    let pool = PoolFactory::create_pool(2).await;
+    let pool = PoolFactory::create_pool(NUM_CONSUMERS).await;
 
     if pool.is_err() {
         error!(target: "main", ctxt = log_data; "Failed to connect to the database");
