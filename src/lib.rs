@@ -30,6 +30,8 @@ pub enum RecordProcessorError {
 }
 
 pub async fn run(processor: Arc<dyn AsyncOutboxProcessor + Send + Sync>, log_data: HashMapLogData) {
+    let mut log_data = log_data.clone();
+    log_data.insert("relay_pkg_version", env!("CARGO_PKG_VERSION").to_string());
     info!(target: "main", ctxt = log_data; "Starting the transaction outbox processor...");
 
     debug!(target: "main", ctxt = log_data; "Resetting worker_uuid field for unprocessed records...");
