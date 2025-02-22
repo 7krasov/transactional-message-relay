@@ -113,9 +113,10 @@ async fn process_records(
         //     .unwrap();
 
         //lock records for update
-        let records_result =
-            DbRepository::lock_for_update(&worker_uuid, record_processor.num_workers(), &mut tx)
-                .await;
+        let records_result = record_processor
+            .db_repository()
+            .lock_for_update(&worker_uuid, &mut tx)
+            .await;
         let records = match records_result {
             Ok(records) => records,
             Err(_) => {
@@ -131,8 +132,10 @@ async fn process_records(
         for record in records {
             let record_id = &String::from_utf8(record.id.clone()).unwrap();
 
-            let res: Result<MySqlQueryResult, Error> =
-                DbRepository::update_worker_uuid(&worker_uuid, record.id.clone(), &mut tx).await;
+            let res: Result<MySqlQueryResult, Error> = record_processor
+                .db_repository()
+                .update_worker_uuid(&worker_uuid, record.id.clone(), &mut tx)
+                .await;
 
             let res = match res {
                 Ok(res) => res,
