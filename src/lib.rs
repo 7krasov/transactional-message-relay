@@ -160,7 +160,7 @@ async fn process_records(
         debug!(target: "process_records", ctxt = log_data; "Retrieving marked records...");
         let records_result = record_processor
             .db_repository()
-            .worker_records(&worker_uuid)
+            .worker_records(worker_uuid.as_str())
             .await;
         let records = match records_result {
             Ok(records) => records,

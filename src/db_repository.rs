@@ -1,6 +1,7 @@
 use serde::Serialize;
 use sqlx::mysql::{MySqlPoolOptions, MySqlQueryResult, MySqlRow};
 use sqlx::{Error, MySqlPool};
+use std::ops::DerefMut;
 use uuid::Uuid;
 
 pub struct DbRepository {
@@ -27,13 +28,13 @@ impl DbRepository {
             // "SELECT id, source_estate_id, type_name, payload \
             "SELECT id \
             FROM processing_transactional_outbox \
-            WHERE worker_uuid IS NULL OR (worker_uuid = ? AND is_processed = 0) ORDER BY created_at ASC LIMIT ? \
+            WHERE worker_uuid IS NULL OR (worker_uuid = ? AND is_processed = 0) ORDER BY created_at LIMIT ? \
             FOR UPDATE",
             //it is better to use "FOR UPDATE SKIP LOCKED" but TiDB does not support it https://github.com/pingcap/tidb/issues/18207
             worker_uuid,
             num_workers,
         )
-            .fetch_all(&mut *tx)
+            .fetch_all(tx.deref_mut())
             .await
     }
 
@@ -48,7 +49,7 @@ impl DbRepository {
             worker_uuid,
             record_id
         )
-        .execute(&mut *tx)
+        .execute(tx.deref_mut())
         .await
     }
 
@@ -63,7 +64,7 @@ impl DbRepository {
         .await
     }
 
-    pub async fn worker_records(&self, worker_uuid: &String) -> Result<Vec<MySqlRow>, Error> {
+    pub async fn worker_records(&self, worker_uuid: &str) -> Result<Vec<MySqlRow>, Error> {
         let worker_id = Uuid::parse_str(worker_uuid).unwrap();
         let sql = format!(
             "SELECT * FROM processing_transactional_outbox WHERE worker_uuid = '{}' AND is_processed = 0 ORDER BY created_at",
