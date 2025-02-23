@@ -26,6 +26,11 @@ impl DbRepository {
             max_rows_limit,
         }
     }
+
+    pub fn max_rows_limit(&self) -> u16 {
+        self.max_rows_limit
+    }
+
     pub async fn start_transaction(
         &self,
         log_data: &HashMapLogData,
