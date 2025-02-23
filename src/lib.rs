@@ -36,7 +36,7 @@ pub async fn run(processor: Arc<dyn AsyncOutboxProcessor + Send + Sync>, log_dat
 
     debug!(target: "main", ctxt = log_data; "Resetting worker_uuid field for unprocessed records...");
     //reset worker_uuid field for unprocessed records
-    processor.db_repository().reset_worker_ids().await;
+    let _ = processor.db_repository().reset_worker_ids(&log_data).await;
     debug!(target: "main", ctxt = log_data; "worker_uuid field for unprocessed records has been reset");
 
     let num_workers = processor.num_workers();
@@ -96,7 +96,10 @@ async fn process_records(
     loop {
         //start a transaction
         debug!(target: "process_records", ctxt = log_data; "Starting a transaction...");
-        let tx_result = record_processor.db_repository().start_transaction().await;
+        let tx_result = record_processor
+            .db_repository()
+            .start_transaction(&log_data)
+            .await;
         let mut tx = match tx_result {
             Ok(tx) => tx,
             Err(_) => {
@@ -115,7 +118,7 @@ async fn process_records(
         //lock records for update
         let records_result = record_processor
             .db_repository()
-            .lock_for_update(&worker_uuid, &mut tx)
+            .lock_for_update(&worker_uuid, &mut tx, &log_data)
             .await;
         let records = match records_result {
             Ok(records) => records,
@@ -134,7 +137,7 @@ async fn process_records(
 
             let res: Result<MySqlQueryResult, Error> = record_processor
                 .db_repository()
-                .update_worker_uuid(&worker_uuid, record.id.clone(), &mut tx)
+                .update_worker_uuid(&worker_uuid, record.id.clone(), &mut tx, &log_data)
                 .await;
 
             let res = match res {
@@ -163,7 +166,7 @@ async fn process_records(
         debug!(target: "process_records", ctxt = log_data; "Retrieving marked records...");
         let records_result = record_processor
             .db_repository()
-            .worker_records(worker_uuid.as_str())
+            .worker_records(worker_uuid.as_str(), &log_data)
             .await;
         let records = match records_result {
             Ok(records) => records,
@@ -192,7 +195,7 @@ async fn process_records(
             debug!(target: "process_records", ctxt = log_data; "The record {} has been processed ", record_id);
             let res = record_processor
                 .db_repository()
-                .mark_as_processed(record_id)
+                .mark_as_processed(record_id, &log_data)
                 .await;
             if res.is_err() {
                 error!(target: "process_records", ctxt = log_data; "Failed to mark record {} as processed: {:?}", record_id, res);
