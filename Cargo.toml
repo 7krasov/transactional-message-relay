@@ -9,5 +9,5 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 log = { version = "0.4" }
-formatted_logger = { version = "0.3.0" }
+formatted_logger = "0.4.0"
 async-trait = "0.1.86"
